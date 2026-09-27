@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Sep 24, 2026 at 12:13 PM
+-- Generation Time: Sep 27, 2026 at 10:44 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -53,6 +53,28 @@ INSERT INTO `document_requests` (`id`, `file_no`, `student_no`, `firstname`, `mi
 (2, 'UWNKVm1CZUdDVTg0TEdMVXZvTkJJYVEySldRTExzVVoyQ0RDL2U0eVNZRT0=', 'cTRYRDNFc3dSY3ZIZnpxVURlTlFrdz09', 'OW5CSGpGbkc3b082c0VoS3g5Nk9qZz09', 'ZFl2T1F4bTlCM0k4NkEvcXdPOHE4Zz09', 'c1hodytiSGgvek53MjdSaE5PM2pTUT09', 'cVlGWTVJVFhBRENwSTFXTTNsY1FEUT09', 'QzNWQXNKS1lzZlRRZ1lkRFZDc1YrQT09', 'VjNCQ1NEL0MxUXZvNmhTdmxOUkQvSlg1WHRwdjdUS05JZnVnR3d1cUhuWT0=', 'SVlzZWVsbWNPRTR4bms5eW5zcTdZWE5EMlVsbSs1Y1FqT3crTWtjcWdpWT0=', 'd25KcTZHNnJxWmQrOGt1WVV3eGRPQT09', NULL, 'MHBRNU5LNXBjUXZRSTVRMnRJajlwZz09', '2026-09-23 07:17:09'),
 (3, 'ZS9ReVhmWWVLWmtSa1NiTGpxdVJOMytsMGhFcHBuYjlESDNidk9ZdWNJMD0=', 'MTJYZVJFQlAyenlnRU15NStZOXkrZz09', 'dnptWE50UGtJY0JtWEE4NzhsYTF1Zz09', 'NlQ5OFpDVHFadkUrSnk5K0xLWG5UZz09', 'dUFybHpHNGJwb3hHSC9XTDAwV2J3Zz09', 'WHhQTk1CYVo1MXJUTWZYSFZOdDh3UT09', 'N0lOUGZ5WTRuamNwWkVaaVdpSGhIdz09', 'NWJCUlo1aFFpb1F3TXErS0RQanRObXptQkhZSkRtT3ZOd2tlcGhjMmFXWT0=', 'UGY0N0YxRUZ3RXJWNCtEWjB1UHFEQT09', 'Mzk5a0JpK3k3U01IY3cvRnpJVTVoV1BINHhQUERhdjhXUmxZY3RKSk0vYz0=', 'SFk5Zkx5RnJTYXE1VWZtTTVkcmJSODAybXhHV3RmVEtpN1pzTkZlT0orTT0=', 'MHBRNU5LNXBjUXZRSTVRMnRJajlwZz09', '2026-09-23 13:07:22');
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `role` enum('student','admin') DEFAULT 'student',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `created_at`) VALUES
+(1, 'System Admin', 'admin@feuroosevelt.edu.ph', 'FEURAdmin1234!', 'admin', '2026-09-27 08:36:44');
+
 --
 -- Indexes for dumped tables
 --
@@ -64,6 +86,13 @@ ALTER TABLE `document_requests`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `email` (`email`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -72,6 +101,12 @@ ALTER TABLE `document_requests`
 --
 ALTER TABLE `document_requests`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
