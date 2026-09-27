@@ -175,3 +175,27 @@ table td strong {
     button[type="submit"] {
         grid-column: span 2;
     }
+
+      /* Back to Request Form Button for track.php */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: #1b4332;
+    background-color: #e8f5e9;
+    border: 1px solid #b7e4c7;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+    margin-bottom: 20px;
+}
+
+.back-link:hover {
+    background-color: #1b4332;
+    color: #ffffff;
+    border-color: #1b4332;
+    transform: translateY(-1px);
+}
