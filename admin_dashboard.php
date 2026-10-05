@@ -119,52 +119,6 @@ while ($row = $result->fetch_assoc()) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | Document Requests</title>
     <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
-    <style>
-        .admin-search {
-            margin: 25px 0 30px;
-            padding: 24px;
-            background: #fff;
-            border-top: 6px solid #00664f;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, .08);
-        }
-        .admin-search form {
-            margin: 0;
-            padding: 0;
-            border: 0;
-            background: transparent;
-            box-shadow: none;
-        }
-        .admin-search input {
-            width: 100%;
-            height: 45px;
-            margin-bottom: 12px;
-            padding: 10px 12px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background: #fff;
-            font-size: 15px;
-        }
-        .admin-search button {
-            width: 100%;
-            height: 42px;
-            margin: 0;
-            border: 0;
-            border-radius: 5px;
-            background: #00664f;
-            color: #fff;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .admin-search button:hover { background: #00533f; }
-        .clear-search {
-            display: inline-block;
-            margin-top: 10px;
-            color: #00664f;
-            text-decoration: none;
-        }
-        .clear-search:hover { text-decoration: underline; }
-    </style>
 </head>
 <body>
     <div class="admin-topbar">
