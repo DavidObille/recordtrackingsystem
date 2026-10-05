@@ -1,32 +1,89 @@
 <?php
+session_start();
+
+if (!isset($_SESSION["user_id"])) {
+    header("Location: index.php");
+    exit();
+}
+
+if (
+    !isset($_SESSION["role"]) ||
+    $_SESSION["role"] !== "admin"
+) {
+    http_response_code(403);
+    exit("Access denied. Administrators only.");
+}
+
 include("./connection/config.php");
 include("./helpers/SystemOperators.php");
+require_once("./helpers/NotificationService.php");
 
-$con = connection();$so = new SystemOperators();
+$con = connection();
+$so = new SystemOperators();
 $success_message = '';
 $requests = [];
 
 // Handle update form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btnUpdate'])) {
-    $request_id = $_POST['request_id'] ?? '';
+    $request_id = filter_input(INPUT_POST, 'request_id', FILTER_VALIDATE_INT);
 	$status = trim(filter_input(INPUT_POST, 'status', FILTER_UNSAFE_RAW) ?? '');
 	$claiming_area = trim(filter_input(INPUT_POST, 'claiming_area', FILTER_UNSAFE_RAW) ?? '');
 
 	$allowed_statuses = ['Pending', 'Processing', 'Approved', 'Ready for Claiming', 'Completed', 'Rejected'];
 
-    if ($request_id && in_array($status, $allowed_statuses) && $claiming_area !== '') {
+    if ($request_id && $request_id > 0 && in_array($status, $allowed_statuses, true) && $claiming_area !== '') {
+        $lookup = $con->prepare("SELECT user_id, email, file_no, status, claiming_area FROM document_requests WHERE id = ?");
+        $lookup->bind_param("i", $request_id);
+        $lookup->execute();
+        $existing_request = $lookup->get_result()->fetch_assoc();
+        $lookup->close();
+
+        if (!$existing_request) {
+            error_log("Document request not found: " . $request_id);
+        } else {
+            $old_status = $so->decrypt($existing_request['status']) ?: 'Pending';
+            $old_area = $so->decrypt($existing_request['claiming_area'] ?? '') ?: '';
+            $changes = [];
+            if ($old_status !== $status) {
+                $changes[] = "status changed from $old_status to $status";
+            }
+            if ($old_area !== $claiming_area) {
+                $changes[] = "claiming area changed from " . ($old_area !== '' ? $old_area : 'not assigned') . " to $claiming_area";
+            }
+            $recipient_id = $existing_request['user_id'] !== null ? (int)$existing_request['user_id'] : null;
+            if ($recipient_id === null) {
+                $student_lookup = $con->prepare("SELECT id FROM users WHERE email = ? AND role = 'student'");
+                $student_lookup->bind_param("s", $existing_request['email']);
+                $student_lookup->execute();
+                $student = $student_lookup->get_result()->fetch_assoc();
+                $student_lookup->close();
+                $recipient_id = $student ? (int)$student['id'] : null;
+            }
+
 		$enc_status = $so->encrypt($status);
 		$enc_area = $so->encrypt($claiming_area);
 
-		$stmt = $con->prepare("UPDATE document_requests SET status = ?, claiming_area = ? WHERE id = ?");
-        $stmt->bind_param("ssi", $enc_status, $enc_area, $request_id);
-        
-        if ($stmt->execute()) {
-            // Post-Redirect-Get pattern to prevent form resubmission on refresh
-            header("Location: admin_dashboard.php?success=1");
-            exit;
+            try {
+                $con->begin_transaction();
+                $stmt = $con->prepare("UPDATE document_requests SET status = ?, claiming_area = ? WHERE id = ?");
+                $stmt->bind_param("ssi", $enc_status, $enc_area, $request_id);
+                $stmt->execute();
+                $stmt->close();
+
+                if ($changes && $recipient_id !== null) {
+                    $reference = $so->decrypt($existing_request['file_no']);
+                    $message = "Your request $reference was updated: " . implode('; ', $changes) . '.';
+                    addNotification($con, $recipient_id, $message, (int)$request_id);
+                }
+
+                $con->commit();
+                header("Location: admin_dashboard.php?success=1");
+                exit;
+            } catch (mysqli_sql_exception $e) {
+                $con->rollback();
+                error_log($e->getMessage());
+            }
         }
-        $stmt->close();
 	}
 }
 
@@ -42,8 +99,6 @@ if ($result = $con->query($query)) {
         $requests[] = $row;
     }
 }
-
-$con->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -51,19 +106,17 @@ $con->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | Document Requests</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .table-wrap { overflow-x: auto; }
-        .request-table { min-width: 950px; }
-        .request-form { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
-        .request-form select, .request-form input, .request-form button, .request-area { width: 100%; padding: 6px; }
-        .success-alert { color: #155724; background-color: #d4edda; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
-    </style>
+    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
 </head>
 <body>
 
-    <h2>Admin Dashboard</h2>
-    <p>Review submitted document requests and update their status and claiming area.</p>
+    <div class="admin-topbar">
+        <div>
+            <h2>Admin Dashboard</h2>
+            <p>Review submitted document requests and update their status and claiming area.</p>
+        </div>
+        <?php include("./helpers/notification_center.php"); ?>
+    </div>
 
     <?php if ($success_message): ?>
         <div class="success-alert"><?= htmlspecialchars($success_message) ?></div>
@@ -87,7 +140,7 @@ $con->close();
             </thead>
             <tbody>
                 <?php if (empty($requests)): ?>
-                    <tr><td colspan="8" style="text-align: center;">No document requests submitted yet.</td></tr>
+                    <tr><td class="empty-requests" colspan="8">No document requests submitted yet.</td></tr>
                 <?php else: ?>
                     <?php foreach ($requests as $request): ?>
                         <?php
@@ -132,5 +185,6 @@ $con->close();
         </table>
     </div>
 
+    <?php $con->close(); ?>
 </body>
 </html>
