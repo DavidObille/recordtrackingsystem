@@ -1,73 +1,66 @@
 <?php
 
-function addNotification($con, $user_id, $message, $request_id = null) {
-    $query = "INSERT INTO notifications (recipient_id, message, request_id)
-              VALUES (?, ?, ?)";
-    $stmt = $con->prepare($query);
-    $stmt->bind_param("isi", $user_id, $message, $request_id);
+function addNotification(mysqli $con, int $recipientId, string $message, ?int $requestId = null): void
+{
+    $stmt = $con->prepare(
+        "INSERT INTO notifications (recipient_id, request_id, message)
+         VALUES (?, ?, ?)"
+    );
+    $stmt->bind_param("iis", $recipientId, $requestId, $message);
     $stmt->execute();
     $stmt->close();
 }
 
-function notifyAdmins($con, $message, $request_id = null) {
-    $query = "INSERT INTO notifications (recipient_id, message, request_id)
-              SELECT id, ?, ? FROM users WHERE role = 'admin'";
-    $stmt = $con->prepare($query);
-    $stmt->bind_param("si", $message, $request_id);
-    $stmt->execute();
-    $stmt->close();
-}
-
-function getNotifications($con, $user_id) {
-    $query = "SELECT id, message, is_read, created_at
-              FROM notifications
-              WHERE recipient_id = ?
-              ORDER BY created_at DESC, id DESC
-              LIMIT 10";
-    $stmt = $con->prepare($query);
-    $stmt->bind_param("i", $user_id);
+function getNotifications(mysqli $con, int $recipientId, int $limit = 8): array
+{
+    $limit = max(1, min($limit, 50));
+    $stmt = $con->prepare(
+        "SELECT id, request_id, message, is_read, created_at
+         FROM notifications
+         WHERE recipient_id = ?
+         ORDER BY created_at DESC, id DESC
+         LIMIT ?"
+    );
+    $stmt->bind_param("ii", $recipientId, $limit);
     $stmt->execute();
     $result = $stmt->get_result();
-
-    $notifications = [];
-    while ($row = $result->fetch_assoc()) {
-        $notifications[] = $row;
-    }
-
+    $notifications = $result->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
     return $notifications;
 }
 
-function getUnreadNotificationCount($con, $user_id) {
-    $query = "SELECT COUNT(*) AS total
-              FROM notifications
-              WHERE recipient_id = ? AND is_read = 0";
-    $stmt = $con->prepare($query);
-    $stmt->bind_param("i", $user_id);
+function countUnreadNotifications(mysqli $con, int $recipientId): int
+{
+    $stmt = $con->prepare(
+        "SELECT COUNT(*) AS unread_count
+         FROM notifications
+         WHERE recipient_id = ? AND is_read = 0"
+    );
+    $stmt->bind_param("i", $recipientId);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $row = $result->fetch_assoc();
+    $count = (int)$stmt->get_result()->fetch_assoc()['unread_count'];
     $stmt->close();
-
-    return (int)$row['total'];
+    return $count;
 }
 
-function markNotificationRead($con, $notification_id, $user_id) {
-    $query = "UPDATE notifications
-              SET is_read = 1
-              WHERE id = ? AND recipient_id = ?";
-    $stmt = $con->prepare($query);
-    $stmt->bind_param("ii", $notification_id, $user_id);
+function markNotificationRead(mysqli $con, int $notificationId, int $recipientId): void
+{
+    $stmt = $con->prepare(
+        "UPDATE notifications SET is_read = 1
+         WHERE id = ? AND recipient_id = ?"
+    );
+    $stmt->bind_param("ii", $notificationId, $recipientId);
     $stmt->execute();
     $stmt->close();
 }
 
-function markAllNotificationsRead($con, $user_id) {
-    $query = "UPDATE notifications
-              SET is_read = 1
-              WHERE recipient_id = ? AND is_read = 0";
-    $stmt = $con->prepare($query);
-    $stmt->bind_param("i", $user_id);
+function markAllNotificationsRead(mysqli $con, int $recipientId): void
+{
+    $stmt = $con->prepare(
+        "UPDATE notifications SET is_read = 1
+         WHERE recipient_id = ? AND is_read = 0"
+    );
+    $stmt->bind_param("i", $recipientId);
     $stmt->execute();
     $stmt->close();
 }
